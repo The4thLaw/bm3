@@ -177,7 +177,7 @@ public class FileProcessor {
 		int i = 0;
 		reporter.setStatus("Creating playlists...");
 		reporter.setStep(i);
-		reporter.setTotal(allFiles.size());
+		reporter.setTotal(loadedPlaylists.size());
 		for (Entry<String, List<File>> playlistEntry : loadedPlaylists.entrySet()) {
 			File playlistFile = new File(targetPlaylistDirectory, playlistEntry.getKey() + ".m3u");
 			try (PrintWriter m3uWriter = new PrintWriter(new FileWriter(playlistFile))) {
