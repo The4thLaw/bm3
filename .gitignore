@@ -1,5 +1,6 @@
 target/
 .project
-.settings
+.settings/
+.metadata/
 .classpath
 forms-1.3.0*
