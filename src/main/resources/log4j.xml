@@ -10,7 +10,7 @@
     </appender>
     
     <appender name="file" class="org.apache.log4j.RollingFileAppender">
-        <param name="file" value="bm3.log" />
+        <param name="file" value="${java.io.tmpdir}/bm3.log" />
         <param name="append" value="true" />
         <param name="maxFileSize" value="1MB" />
         <layout class="org.apache.log4j.PatternLayout"> 
@@ -21,6 +21,7 @@
     <root> 
         <priority value="info" /> 
         <appender-ref ref="console" /> 
+        <appender-ref ref="file" /> 
     </root>
     
 </log4j:configuration>
