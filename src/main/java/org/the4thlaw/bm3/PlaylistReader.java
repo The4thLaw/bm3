@@ -3,10 +3,12 @@ package org.the4thlaw.bm3;
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
+import org.apache.commons.io.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +19,7 @@ public class PlaylistReader implements Closeable, AutoCloseable {
 	private final File playlistDirectory;
 
 	public PlaylistReader(File playlist) throws FileNotFoundException {
-		reader = new BufferedReader(new FileReader(playlist));
+		reader = new BufferedReader(new InputStreamReader(new FileInputStream(playlist), Charsets.UTF_8));
 		playlistDirectory = playlist.getParentFile();
 	}
 
