@@ -191,40 +191,50 @@ public class FileProcessor {
 		}
 	}
 
-	private void copyFiles(ProgressReporter reporter, Set<File> allFiles) throws IOException {
+	private void copyFiles(ProgressReporter reporter, Set<File> allFiles) {
 		LOGGER.info("Copying files and setting covers...");
 		int i = 0;
 		reporter.setStatus("Copying files and covers...");
 		reporter.setStep(i);
 		reporter.setTotal(allFiles.size());
 		for (File sourceFile : allFiles) {
-			Path path = sourceDirectory.toPath().relativize(sourceFile.toPath());
-
-			// Create the parent directory in the target
-			File targetFile = new File(targetDirectory, path.toString());
-			targetFile.getParentFile().mkdirs();
-
-			// Check for cover. Only for MP3
-			Cover cover = null;
-			if (FilenameUtils.getExtension(sourceFile.getName()).equalsIgnoreCase("mp3")) {
-				cover = Cover.forMusicFile(sourceFile);
+			try {
+				copyFile(sourceFile);
+			} catch (IOException e) {
+				LOGGER.warn("Failed to copy a file: {}", sourceFile, e);
+				reporter.reportError("Failed to copy a file:\n" + e.getMessage() + "\n\nFile was:\n" + sourceFile);
+				// Continue happily
 			}
-
-			if (shouldCopy(sourceFile, targetFile, cover)) {
-				// If there is no cover, copy the file as-is
-				if (cover == null) {
-					FileUtils.copyFile(sourceFile, targetFile);
-				} else {
-					// We can integrate the cover on the fly
-					cover.writeToFile(sourceFile, targetFile);
-				}
-			}
-
-			LOGGER.debug(path.toString());
 			reporter.setStep(i++);
 		}
 		reporter.setStep(allFiles.size());
 		LOGGER.info("Copy complete");
+	}
+
+	private void copyFile(File sourceFile) throws IOException {
+		Path path = sourceDirectory.toPath().relativize(sourceFile.toPath());
+
+		// Create the parent directory in the target
+		File targetFile = new File(targetDirectory, path.toString());
+		targetFile.getParentFile().mkdirs();
+
+		// Check for cover. Only for MP3
+		Cover cover = null;
+		if (FilenameUtils.getExtension(sourceFile.getName()).equalsIgnoreCase("mp3")) {
+			cover = Cover.forMusicFile(sourceFile);
+		}
+
+		if (shouldCopy(sourceFile, targetFile, cover)) {
+			// If there is no cover, copy the file as-is
+			if (cover == null) {
+				FileUtils.copyFile(sourceFile, targetFile);
+			} else {
+				// We can integrate the cover on the fly
+				cover.writeToFile(sourceFile, targetFile);
+			}
+		}
+
+		LOGGER.trace("Copied {}", path.toString());
 	}
 
 	/**
