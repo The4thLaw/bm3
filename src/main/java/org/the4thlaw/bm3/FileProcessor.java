@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +29,15 @@ import org.slf4j.LoggerFactory;
 public class FileProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FileProcessor.class);
 	private static final Pattern EXCLUDE_PATTERN = Pattern.compile("^BM3.Exclu(sion|de)s?.*", Pattern.CASE_INSENSITIVE);
+
 	private final File sourceDirectory;
 	private final File targetDirectory;
 	private final boolean syncMode;
+
+	private final SummaryStatistics sourceFileTotalStats = new SummaryStatistics();
+	private final SummaryStatistics targetFileTotalStats = new SummaryStatistics();
+	private final SummaryStatistics syncSavedStats = new SummaryStatistics();
+	private final StopWatch stopWatch = new StopWatch();
 
 	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode) {
 		this.sourceDirectory = sourceDirectory;
@@ -38,6 +46,8 @@ public class FileProcessor {
 	}
 
 	public void process(ProgressReporter reporter) throws IOException {
+		resetStats();
+
 		Set<File> includedFiles = new TreeSet<>(); // Use a tree set to maximise
 													// cache hits for covers
 		Map<String, List<File>> loadedPlaylists = new HashMap<>();
@@ -56,6 +66,7 @@ public class FileProcessor {
 
 		reporter.setStatus("Done");
 		LOGGER.info("Process complete");
+		outputStatistics();
 	}
 
 	/**
@@ -224,6 +235,7 @@ public class FileProcessor {
 			cover = Cover.forMusicFile(sourceFile);
 		}
 
+		long originalSize = sourceFile.length();
 		if (shouldCopy(sourceFile, targetFile, cover)) {
 			// If there is no cover, copy the file as-is
 			if (cover == null) {
@@ -232,7 +244,13 @@ public class FileProcessor {
 				// We can integrate the cover on the fly
 				cover.writeToFile(sourceFile, targetFile);
 			}
+		} else {
+			syncSavedStats.addValue(originalSize);
 		}
+
+		long destinationSize = targetFile.length();
+		sourceFileTotalStats.addValue(originalSize);
+		targetFileTotalStats.addValue(destinationSize);
 
 		LOGGER.trace("Copied {}", path.toString());
 	}
@@ -276,5 +294,39 @@ public class FileProcessor {
 
 		LOGGER.debug("Not syncing {}: no change since last copy", sourceFile);
 		return false;
+	}
+
+	/**
+	 * Resets all statistics.
+	 */
+	private void resetStats() {
+		sourceFileTotalStats.clear();
+		targetFileTotalStats.clear();
+		syncSavedStats.clear();
+		stopWatch.start();
+	}
+
+	/**
+	 * Closes and outputs all statistics to the logger.
+	 */
+	private void outputStatistics() {
+		stopWatch.stop();
+
+		LOGGER.info("Processed {} files in {} seconds.", sourceFileTotalStats.getN(),
+				Math.round(stopWatch.getTime() / 1000));
+		double sourceTotal = sourceFileTotalStats.getSum();
+		LOGGER.info("Source files weighted {} MB in total (average: {})", byteCountToMB((long) sourceTotal),
+				FileUtils.byteCountToDisplaySize((long) sourceFileTotalStats.getMean()));
+		double targetTotal = targetFileTotalStats.getSum();
+		float increase = Math.round(((targetTotal / sourceTotal) - 1) * 10000) / 100;
+		LOGGER.info("Target files weighted {} MB in total (average: {}), a {}% increase with the covers",
+				byteCountToMB((long) targetTotal),
+				FileUtils.byteCountToDisplaySize((long) targetFileTotalStats.getMean()), increase);
+		LOGGER.info("Sync saved the copy of {} MB in {} files", byteCountToMB((long) syncSavedStats.getSum()),
+				syncSavedStats.getN());
+	}
+
+	private static long byteCountToMB(long bytes) {
+		return Math.round(((double) bytes) / 1024 / 1024);
 	}
 }
