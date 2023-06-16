@@ -48,8 +48,8 @@ public class FileProcessor {
 	public void process(ProgressReporter reporter) throws IOException {
 		resetStats();
 
-		Set<File> includedFiles = new TreeSet<>(); // Use a tree set to maximise
-													// cache hits for covers
+		// Use a tree set to maximise cache hits for covers
+		Set<File> includedFiles = new TreeSet<>(); 
 		Map<String, List<File>> loadedPlaylists = new HashMap<>();
 
 		Collection<File> allPlaylists = getPlaylists(reporter);

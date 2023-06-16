@@ -12,7 +12,7 @@ import org.apache.commons.io.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PlaylistReader implements Closeable, AutoCloseable {
+public class PlaylistReader implements Closeable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(PlaylistReader.class);
 
 	private final BufferedReader reader;
