@@ -1,5 +1,6 @@
 package org.the4thlaw.bm3;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -178,6 +179,7 @@ public class FileProcessor {
 
 			reporter.setStep(i++);
 		}
+		LOGGER.info("Found {} files", includedFiles.size());
 	}
 
 	private void recreatePlaylists(ProgressReporter reporter, Set<File> allFiles,
@@ -191,9 +193,11 @@ public class FileProcessor {
 		reporter.setTotal(loadedPlaylists.size());
 		for (Entry<String, List<File>> playlistEntry : loadedPlaylists.entrySet()) {
 			File playlistFile = new File(targetPlaylistDirectory, playlistEntry.getKey() + ".m3u");
-			try (PrintWriter m3uWriter = new PrintWriter(new FileWriter(playlistFile))) {
+			List<File> plsEntries = playlistEntry.getValue();
+			LOGGER.info("Creating playlist \"{}\" for {} files", playlistFile, plsEntries.size());
+			try (PrintWriter m3uWriter = new PrintWriter(new BufferedWriter(new FileWriter(playlistFile)))) {
 				m3uWriter.println("#EXTM3U");
-				for (File record : playlistEntry.getValue()) {
+				for (File record : plsEntries) {
 					m3uWriter.println(".." + File.separator
 							+ sourceDirectory.toPath().relativize(record.toPath()).toString());
 				}

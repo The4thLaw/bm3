@@ -47,6 +47,7 @@ public class ApplicationGUI implements ProgressReporter {
 	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					ApplicationGUI window = new ApplicationGUI();
@@ -130,6 +131,7 @@ public class ApplicationGUI implements ProgressReporter {
 			putValue(NAME, "Browse...");
 		}
 
+		@Override
 		public void actionPerformed(ActionEvent e) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -151,6 +153,7 @@ public class ApplicationGUI implements ProgressReporter {
 			putValue(NAME, "Browse...");
 		}
 
+		@Override
 		public void actionPerformed(ActionEvent e) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -172,6 +175,7 @@ public class ApplicationGUI implements ProgressReporter {
 			putValue(NAME, "Run");
 		}
 
+		@Override
 		public void actionPerformed(ActionEvent e) {
 			lockUnlockUI(true);
 			new Thread(new Runnable() {
@@ -217,6 +221,7 @@ public class ApplicationGUI implements ProgressReporter {
 
 	@Override
 	public void setStatus(final String status) {
+		LOGGER.info(status);
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
