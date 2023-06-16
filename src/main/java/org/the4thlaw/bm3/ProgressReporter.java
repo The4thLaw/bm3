@@ -10,4 +10,10 @@ public interface ProgressReporter {
 	void setStep(int step);
 
 	void reportError(String message);
+
+	void setSubTotal(int total);
+
+	void setSubStep(int step);
+
+	void endSubTracking();
 }

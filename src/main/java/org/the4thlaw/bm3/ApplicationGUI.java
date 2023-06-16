@@ -36,7 +36,8 @@ public class ApplicationGUI implements ProgressReporter {
 	private final Action browseSourceAction = new BrowseSourceAction();
 	private final Action browseDestinationAction = new BrowseDestinationAction();
 	private final Action runAction = new RunAction();
-	private JProgressBar progressBar;
+	private JProgressBar mainProgressBar;
+	private JProgressBar subProgressBar;
 	private JLabel statusLabel;
 	private int currentTotal;
 
@@ -81,16 +82,26 @@ public class ApplicationGUI implements ProgressReporter {
 		frame.setBounds(100, 100, 386, 240);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(
-				new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC,
-						FormFactory.LABEL_COMPONENT_GAP_COLSPEC, FormFactory.RELATED_GAP_COLSPEC,
-						ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC,
-						FormFactory.DEFAULT_COLSPEC, FormFactory.RELATED_GAP_COLSPEC,
-						ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC,
-						FormFactory.LABEL_COMPONENT_GAP_COLSPEC, }, new RowSpec[] { FormFactory.RELATED_GAP_ROWSPEC,
-						FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
-						FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
-						FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
-						FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, }));
+				new FormLayout(
+						// Columns
+						new ColumnSpec[]
+						{ FormFactory.RELATED_GAP_COLSPEC,
+								FormFactory.LABEL_COMPONENT_GAP_COLSPEC, FormFactory.RELATED_GAP_COLSPEC,
+								ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC,
+								FormFactory.DEFAULT_COLSPEC, FormFactory.RELATED_GAP_COLSPEC,
+								ColumnSpec.decode("default:grow"), FormFactory.RELATED_GAP_COLSPEC,
+								FormFactory.LABEL_COMPONENT_GAP_COLSPEC, },
+						// Rows
+						new RowSpec[]
+						{ FormFactory.RELATED_GAP_ROWSPEC,
+								FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
+								FormFactory.DEFAULT_ROWSPEC,
+								FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
+								FormFactory.RELATED_GAP_ROWSPEC,
+								FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
+								FormFactory.DEFAULT_ROWSPEC,
+								FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
+								FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, }));
 
 		JLabel lblSourceDirectory = new JLabel("Source directory:");
 		frame.getContentPane().add(lblSourceDirectory, "4, 2");
@@ -119,9 +130,13 @@ public class ApplicationGUI implements ProgressReporter {
 		statusLabel.setEnabled(false);
 		frame.getContentPane().add(statusLabel, "4, 10");
 
-		progressBar = new JProgressBar();
-		statusLabel.setEnabled(false);
-		frame.getContentPane().add(progressBar, "4, 12, 5, 1");
+		mainProgressBar = new JProgressBar();
+		mainProgressBar.setEnabled(false);
+		frame.getContentPane().add(mainProgressBar, "4, 12, 5, 1");
+
+		subProgressBar = new JProgressBar();
+		subProgressBar.setEnabled(false);
+		frame.getContentPane().add(subProgressBar, "4, 14, 5, 1");
 	}
 
 	private class BrowseSourceAction extends AbstractAction {
@@ -207,7 +222,7 @@ public class ApplicationGUI implements ProgressReporter {
 
 	private void lockUnlockUI(boolean locked) {
 		statusLabel.setEnabled(locked);
-		progressBar.setEnabled(locked);
+		mainProgressBar.setEnabled(locked);
 		runAction.setEnabled(!locked);
 		browseSourceAction.setEnabled(!locked);
 		browseDestinationAction.setEnabled(!locked);
@@ -235,8 +250,8 @@ public class ApplicationGUI implements ProgressReporter {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				progressBar.setIndeterminate(unknown);
-				progressBar.setStringPainted(!unknown);
+				mainProgressBar.setIndeterminate(unknown);
+				mainProgressBar.setStringPainted(!unknown);
 			}
 		});
 	}
@@ -247,7 +262,7 @@ public class ApplicationGUI implements ProgressReporter {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				progressBar.setMaximum(total);
+				mainProgressBar.setMaximum(total);
 			}
 		});
 	}
@@ -257,8 +272,8 @@ public class ApplicationGUI implements ProgressReporter {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				progressBar.setString(step + " / " + currentTotal);
-				progressBar.setValue(step);
+				mainProgressBar.setString(step + " / " + currentTotal);
+				mainProgressBar.setValue(step);
 			}
 		});
 	}
@@ -269,6 +284,42 @@ public class ApplicationGUI implements ProgressReporter {
 			@Override
 			public void run() {
 				JOptionPane.showMessageDialog(frame, message, "Warning", JOptionPane.WARNING_MESSAGE);
+			}
+		});
+	}
+
+	@Override
+	public void setSubTotal(final int total) {
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				subProgressBar.setEnabled(true);
+				subProgressBar.setStringPainted(true);
+				subProgressBar.setMaximum(total);
+			}
+		});
+	}
+
+	@Override
+	public void setSubStep(final int step) {
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				subProgressBar.setString(step + " / " + subProgressBar.getMaximum());
+				subProgressBar.setValue(step);
+			}
+		});
+	}
+
+	@Override
+	public void endSubTracking() {
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				subProgressBar.setMaximum(1);
+				subProgressBar.setValue(0);
+				subProgressBar.setEnabled(false);
+				subProgressBar.setStringPainted(false);
 			}
 		});
 	}

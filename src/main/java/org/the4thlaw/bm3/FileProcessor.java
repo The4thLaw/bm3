@@ -50,7 +50,7 @@ public class FileProcessor {
 		resetStats();
 
 		// Use a tree set to maximise cache hits for covers
-		Set<File> includedFiles = new TreeSet<>(); 
+		Set<File> includedFiles = new TreeSet<>();
 		Map<String, List<File>> loadedPlaylists = new HashMap<>();
 
 		Collection<File> allPlaylists = getPlaylists(reporter);
@@ -73,12 +73,9 @@ public class FileProcessor {
 	/**
 	 * Filters input playlists in two sets: inclusions and exclusions.
 	 * 
-	 * @param m3uFiles
-	 *            The files to filters.
-	 * @param excludedPlaylists
-	 *            The list to populate with exclusions.
-	 * @param includedPlaylists
-	 *            The list to populate with inclusions.
+	 * @param m3uFiles The files to filters.
+	 * @param excludedPlaylists The list to populate with exclusions.
+	 * @param includedPlaylists The list to populate with inclusions.
 	 */
 	private static void filterPlaylists(Collection<File> m3uFiles, Collection<File> excludedPlaylists,
 			Collection<File> includedPlaylists) {
@@ -94,15 +91,12 @@ public class FileProcessor {
 	/**
 	 * Loads the list excluded files.
 	 * 
-	 * @param reporter
-	 *            The progress reporter.
-	 * @param excludedPlaylists
-	 *            The list of playlists to process as exclusions.
-	 * @return The set of excluded files. The returned set contains only
-	 *         canonical files as per {@link File#getCanonicalFile()}.
-	 * @throws IOException
-	 *             If loading the playlist fails (this method does not throw
-	 *             exceptions if a file mentioned in a playlist does not exist).
+	 * @param reporter The progress reporter.
+	 * @param excludedPlaylists The list of playlists to process as exclusions.
+	 * @return The set of excluded files. The returned set contains only canonical files as per
+	 *         {@link File#getCanonicalFile()}.
+	 * @throws IOException If loading the playlist fails (this method does not throw exceptions if a file mentioned in a
+	 *             playlist does not exist).
 	 */
 	private static Set<File> loadExclusions(ProgressReporter reporter, Collection<File> excludedPlaylists)
 			throws IOException {
@@ -192,17 +186,27 @@ public class FileProcessor {
 		reporter.setStep(i);
 		reporter.setTotal(loadedPlaylists.size());
 		for (Entry<String, List<File>> playlistEntry : loadedPlaylists.entrySet()) {
-			File playlistFile = new File(targetPlaylistDirectory, playlistEntry.getKey() + ".m3u");
+			String plsName = playlistEntry.getKey();
+			File playlistFile = new File(targetPlaylistDirectory, plsName + ".m3u");
 			List<File> plsEntries = playlistEntry.getValue();
-			LOGGER.info("Creating playlist \"{}\" for {} files", playlistFile, plsEntries.size());
+			int numEntries = plsEntries.size();
+			int curEntry = 0;
+			LOGGER.info("Creating playlist \"{}\" for {} files", playlistFile, numEntries);
+			reporter.setSubTotal(numEntries);
+			reporter.setSubStep(0);
 			try (PrintWriter m3uWriter = new PrintWriter(new BufferedWriter(new FileWriter(playlistFile)))) {
 				m3uWriter.println("#EXTM3U");
+				LOGGER.trace("{}: wrote header", plsName);
 				for (File record : plsEntries) {
-					m3uWriter.println(".." + File.separator
-							+ sourceDirectory.toPath().relativize(record.toPath()).toString());
+					String adjustedPath = ".." + File.separator
+							+ sourceDirectory.toPath().relativize(record.toPath()).toString();
+					LOGGER.trace("{}: writing path for file {}", plsName, adjustedPath);
+					m3uWriter.println(adjustedPath);
+					reporter.setSubStep(++curEntry);
 				}
 			}
 			reporter.setStep(i++);
+			reporter.endSubTracking();
 		}
 	}
 
@@ -260,15 +264,11 @@ public class FileProcessor {
 	}
 
 	/**
-	 * Applies heuristics to check if it's worth copying the file to the
-	 * destination.
+	 * Applies heuristics to check if it's worth copying the file to the destination.
 	 * 
-	 * @param sourceFile
-	 *            The file to copy.
-	 * @param targetFile
-	 *            The destination.
-	 * @param cover
-	 *            The cover.
+	 * @param sourceFile The file to copy.
+	 * @param targetFile The destination.
+	 * @param cover The cover.
 	 * @return <code>true</code> if the file should be copied.
 	 */
 	private boolean shouldCopy(File sourceFile, File targetFile, Cover cover) {
