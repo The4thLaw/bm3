@@ -9,6 +9,8 @@
 
 	<name>bm3</name>
 	<url>http://maven.apache.org</url>
+	<inceptionYear>2016</inceptionYear>
+	<description>MP3 playlist and album art processor for BMW's iDrive</description>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -110,7 +112,7 @@
 			<plugin>
 				<groupId>com.akathist.maven.plugins.launch4j</groupId>
 				<artifactId>launch4j-maven-plugin</artifactId>
-				<version>1.7.10</version>
+				<version>2.4.1</version>
 				<executions>
 					<execution>
 						<id>l4j-gui</id>
@@ -124,8 +126,9 @@
 							<outfile>${project.build.directory}/BM3-v${project.version}.exe</outfile>
 							<!--<icon>src/main/resources/icon.ico</icon>-->
 							<jre>
+								<path>%JAVA_HOME%;%PATH%</path>
 								<minVersion>1.7.0</minVersion>
-								<jdkPreference>preferJre</jdkPreference>
+								<requiresJdk>false</requiresJdk>
 								<initialHeapSize>64</initialHeapSize>
 								<maxHeapSize>256</maxHeapSize>
 							</jre>
