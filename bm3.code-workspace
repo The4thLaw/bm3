@@ -1,0 +1,64 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.tabSize": 4,
+
+		"java.configuration.updateBuildConfiguration": "interactive",
+
+		"java.format.settings.url": ".config/eclipse-formatter.xml",
+
+		"files.watcherExclude": {
+			"target/**": true
+		},
+		"search.exclude": {
+			"target": true
+		},
+		"files.eol": "\n",
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.cleanup.actionsOnSave": [
+			"addOverride",
+			"addDeprecated"
+		],
+		"java.completion.guessMethodArguments": true,
+		"java.saveActions.organizeImports": true,
+		"java.completion.importOrder": [
+			"java",
+			"javax",
+			"org",
+			"com",
+			"org.the4thlaw",
+			"#",
+			""
+		],
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": true
+		}
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Maven install (skip tests)",
+				"type": "shell",
+				"command": "./mvnw -B install -DskipTests",
+				"group": "build"
+			},
+			{
+				"label": "Maven install (with tests)",
+				"type": "shell",
+				"command": "./mvnw -B install",
+				"group": "build"
+			},
+			{
+				"label": "Maven clean",
+				"type": "shell",
+				"command": "./mvnw -B clean",
+				"group": "build"
+			}
+		]
+	}
+}
