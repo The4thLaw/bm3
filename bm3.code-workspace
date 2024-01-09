@@ -7,7 +7,7 @@
 	"settings": {
 		"editor.tabSize": 4,
 
-		"java.configuration.updateBuildConfiguration": "interactive",
+		"java.configuration.updateBuildConfiguration": "automatic",
 
 		"java.format.settings.url": ".config/eclipse-formatter.xml",
 
@@ -35,7 +35,7 @@
 			""
 		],
 		"editor.codeActionsOnSave": {
-			"source.organizeImports": true
+			"source.organizeImports": "explicit"
 		}
 	},
 	"tasks": {
