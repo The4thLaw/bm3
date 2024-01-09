@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,10 +16,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.slf4j.Logger;
@@ -38,6 +42,7 @@ public class FileProcessor {
 	private final SummaryStatistics sourceFileTotalStats = new SummaryStatistics();
 	private final SummaryStatistics targetFileTotalStats = new SummaryStatistics();
 	private final SummaryStatistics syncSavedStats = new SummaryStatistics();
+	private final SummaryStatistics syncRemovedStats = new SummaryStatistics();
 	private final StopWatch stopWatch = new StopWatch();
 
 	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode) {
@@ -63,11 +68,47 @@ public class FileProcessor {
 		Set<File> excludedFiles = loadExclusions(reporter, excludedPlaylists);
 		findFiles(reporter, excludedFiles, includedPlaylists, includedFiles, loadedPlaylists);
 		recreatePlaylists(reporter, includedFiles, loadedPlaylists);
+		if (syncMode) {
+			removeFiles(reporter, includedFiles);
+		}
 		copyFiles(reporter, includedFiles);
 
 		reporter.setStatus("Done");
 		LOGGER.info("Process complete");
 		outputStatistics();
+	}
+
+	private void removeFiles(ProgressReporter reporter, Set<File> includedFiles) {
+		reporter.setStatus("Finding de-synced files to remove");
+		reporter.setProgressUnknown(true);
+		Path sourcePath = sourceDirectory.toPath();
+		// Build the set of relative file names
+		Set<String> includedPaths = includedFiles.stream().map(f -> sourcePath.relativize(f.toPath()).toString())
+				.collect(Collectors.toSet());
+		// List the files which have been removed from the source data
+		NotInSourceFileFilter filter = new NotInSourceFileFilter(includedPaths, targetDirectory.toPath());
+		Collection<File> filesToRemove = FileUtils.listFiles(targetDirectory, filter, TrueFileFilter.INSTANCE);
+		// Actually remove those files from destination
+		LOGGER.debug("There are {} files to delete", filesToRemove.size());
+		reporter.setProgressUnknown(false);
+		if (!filesToRemove.isEmpty()) {
+			AtomicInteger step = new AtomicInteger(0);
+			reporter.setStep(0);
+			reporter.setTotal(filesToRemove.size());
+			filesToRemove.stream().forEach(f -> {
+				try {
+					long fileSize = f.length();
+					Files.delete(f.toPath());
+					syncRemovedStats.addValue(fileSize);
+				} catch (IOException e) {
+					LOGGER.warn("Failed to remove de-synced file {}", f, e);
+				} finally {
+					reporter.setStep(step.incrementAndGet());
+				}
+			});
+		}
+
+		// Some empty directories could be left behind but it's no big deal and it's a bit complex to prune them
 	}
 
 	/**
@@ -163,6 +204,12 @@ public class FileProcessor {
 				while ((musicFile = m3uReader.getEntry()) != null) {
 					if (excludedFiles.contains(musicFile)) {
 						LOGGER.debug("File {} has been marked for exclusion", musicFile);
+						continue;
+					}
+					if (!musicFile.exists()) {
+						// Silently skip missing files
+						LOGGER.debug("Playlist {} references non-existing file {}, the file will be skipped",
+								playlistName, musicFile);
 						continue;
 					}
 					includedFiles.add(musicFile);
@@ -307,6 +354,7 @@ public class FileProcessor {
 		sourceFileTotalStats.clear();
 		targetFileTotalStats.clear();
 		syncSavedStats.clear();
+		syncRemovedStats.clear();
 		stopWatch.start();
 	}
 
@@ -326,6 +374,8 @@ public class FileProcessor {
 		LOGGER.info("Target files weighted {} MB in total (average: {}), a {}% increase with the covers",
 				byteCountToMB((long) targetTotal),
 				FileUtils.byteCountToDisplaySize((long) targetFileTotalStats.getMean()), increase);
+		LOGGER.info("Sync removed {} files worth {} MB", syncRemovedStats.getN(),
+				byteCountToMB((long) syncRemovedStats.getSum()));
 		LOGGER.info("Sync saved the copy of {} MB in {} files", byteCountToMB((long) syncSavedStats.getSum()),
 				syncSavedStats.getN());
 	}
