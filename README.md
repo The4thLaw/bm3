@@ -9,6 +9,7 @@ MP3 playlist and album art processor for BMW's iDrive
 
 ## Compatibility
 Tested on:
-- BMW 1 series F20 2016
+- BMW 1 series F20 2016 (facelift)
+- BMW 3 series G21 2022 (facelift)
 
-This is pretty generic software. It could very well work on non-BMW cars.
+This is pretty generic software. It could very well work on non-BMW cars as long as they support M3U playlists (2020 Kia's don't, for example).
