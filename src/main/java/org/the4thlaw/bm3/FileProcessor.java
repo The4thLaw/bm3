@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class FileProcessor {
 	private final File sourceDirectory;
 	private final File targetDirectory;
 	private final boolean syncMode;
+	private final boolean dryRun;
 
 	private final SummaryStatistics sourceFileTotalStats = new SummaryStatistics();
 	private final SummaryStatistics targetFileTotalStats = new SummaryStatistics();
@@ -45,10 +47,11 @@ public class FileProcessor {
 	private final SummaryStatistics syncRemovedStats = new SummaryStatistics();
 	private final StopWatch stopWatch = new StopWatch();
 
-	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode) {
+	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode, boolean dryRun) {
 		this.sourceDirectory = sourceDirectory;
 		this.targetDirectory = targetDirectory;
 		this.syncMode = syncMode;
+		this.dryRun = dryRun;
 	}
 
 	public void process(ProgressReporter reporter) throws IOException {
@@ -67,10 +70,10 @@ public class FileProcessor {
 
 		Set<File> excludedFiles = loadExclusions(reporter, excludedPlaylists);
 		findFiles(reporter, excludedFiles, includedPlaylists, includedFiles, loadedPlaylists);
-		recreatePlaylists(reporter, includedFiles, loadedPlaylists);
 		if (syncMode) {
 			removeFiles(reporter, includedFiles);
 		}
+		recreatePlaylists(reporter, includedFiles, loadedPlaylists);
 		copyFiles(reporter, includedFiles);
 
 		reporter.setStatus("Done");
@@ -79,6 +82,38 @@ public class FileProcessor {
 	}
 
 	private void removeFiles(ProgressReporter reporter, Set<File> includedFiles) {
+		removePlaylists();
+		removeObsoleteAudio(reporter, includedFiles);
+	}
+
+	private boolean deleteFile(File f) {
+		if (dryRun) {
+			return true;
+		}
+		try {
+			Files.delete(f.toPath());
+		} catch (IOException e) {
+			LOGGER.warn("Failed to delete {}", f, e);
+			return false;
+		}
+		return true;
+	}
+
+	private void removePlaylists() {
+		File plsDir = getTargetPlaylistDirectory();
+		File[] playlists = plsDir.listFiles((d, n) -> n.endsWith(".m3u"));
+		if (playlists == null) {
+			playlists = new File[0];
+		}
+		LOGGER.debug("Found {} existing playlists which will be removed", playlists.length);
+		if (!dryRun) {
+			for (File pls : playlists) {
+				deleteFile(pls);
+			}
+		}
+	}
+
+	private void removeObsoleteAudio(ProgressReporter reporter, Set<File> includedFiles) {
 		reporter.setStatus("Finding de-synced files to remove");
 		reporter.setProgressUnknown(true);
 		Path sourcePath = sourceDirectory.toPath();
@@ -96,15 +131,11 @@ public class FileProcessor {
 			reporter.setStep(0);
 			reporter.setTotal(filesToRemove.size());
 			filesToRemove.stream().forEach(f -> {
-				try {
-					long fileSize = f.length();
-					Files.delete(f.toPath());
+				long fileSize = f.length();
+				if (deleteFile(f)) {
 					syncRemovedStats.addValue(fileSize);
-				} catch (IOException e) {
-					LOGGER.warn("Failed to remove de-synced file {}", f, e);
-				} finally {
-					reporter.setStep(step.incrementAndGet());
 				}
+				reporter.setStep(step.incrementAndGet());
 			});
 		}
 
@@ -223,10 +254,17 @@ public class FileProcessor {
 		LOGGER.info("Found {} files", includedFiles.size());
 	}
 
+	private File getTargetPlaylistDirectory() {
+		File targetPlaylistDirectory = new File(targetDirectory, "BM3_Playlists");
+		if (!dryRun) {
+			targetPlaylistDirectory.mkdirs();
+		}
+		return targetPlaylistDirectory;
+	}
+
 	private void recreatePlaylists(ProgressReporter reporter, Set<File> allFiles,
 			Map<String, List<File>> loadedPlaylists) throws IOException {
-		File targetPlaylistDirectory = new File(targetDirectory, "BM3_Playlists");
-		targetPlaylistDirectory.mkdirs();
+		File targetPlaylistDirectory = getTargetPlaylistDirectory();
 
 		int i = 0;
 		reporter.setStatus("Creating playlists...");
@@ -241,7 +279,7 @@ public class FileProcessor {
 			LOGGER.info("Creating playlist \"{}\" for {} files", playlistFile, numEntries);
 			reporter.setSubTotal(numEntries);
 			reporter.setSubStep(0);
-			try (PrintWriter m3uWriter = new PrintWriter(new BufferedWriter(new FileWriter(playlistFile)))) {
+			try (PrintWriter m3uWriter = getPlaylistWriter(playlistFile)) {
 				m3uWriter.println("#EXTM3U");
 				LOGGER.trace("{}: wrote header", plsName);
 				for (File record : plsEntries) {
@@ -254,6 +292,14 @@ public class FileProcessor {
 			}
 			reporter.setStep(i++);
 			reporter.endSubTracking();
+		}
+	}
+
+	private PrintWriter getPlaylistWriter(File playlistFile) throws IOException {
+		if (dryRun) {
+			return new PrintWriter(new StringWriter());
+		} else {
+			return new PrintWriter(new BufferedWriter(new FileWriter(playlistFile)));
 		}
 	}
 
@@ -282,7 +328,9 @@ public class FileProcessor {
 
 		// Create the parent directory in the target
 		File targetFile = new File(targetDirectory, path.toString());
-		targetFile.getParentFile().mkdirs();
+		if (!dryRun) {
+			targetFile.getParentFile().mkdirs();
+		}
 
 		// Check for cover. Only for MP3
 		Cover cover = null;
@@ -292,18 +340,26 @@ public class FileProcessor {
 
 		long originalSize = sourceFile.length();
 		if (shouldCopy(sourceFile, targetFile, cover)) {
-			// If there is no cover, copy the file as-is
-			if (cover == null) {
-				FileUtils.copyFile(sourceFile, targetFile);
-			} else {
-				// We can integrate the cover on the fly
-				cover.writeToFile(sourceFile, targetFile);
+			if (!dryRun) {
+				// If there is no cover, copy the file as-is
+				if (cover == null) {
+					FileUtils.copyFile(sourceFile, targetFile);
+				} else {
+					// We can integrate the cover on the fly
+					cover.writeToFile(sourceFile, targetFile);
+				}
 			}
 		} else {
 			syncSavedStats.addValue(originalSize);
 		}
 
-		long destinationSize = targetFile.length();
+		long destinationSize;
+		if (dryRun) {
+			// Will be different without the dry run but we can't estimate the increase
+			destinationSize = originalSize;
+		} else {
+			destinationSize = targetFile.length();
+		}
 		sourceFileTotalStats.addValue(originalSize);
 		targetFileTotalStats.addValue(destinationSize);
 

@@ -10,6 +10,9 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
+// TODO: switch to Logback
+// TODO: add verbose mode to control logs
+// TODO: Remove logs from cache2k
 public class CLI implements ProgressReporter {
 
     public static void main(String[] args) throws IOException {
@@ -17,7 +20,8 @@ public class CLI implements ProgressReporter {
 
         options.addRequiredOption("i", "input", true, "Input directory")
                 .addRequiredOption("o", "output", true, "Output directory")
-                .addOption("s", "sync", false, "Synchronize changes rather than copying everything");
+                .addOption("s", "sync", false, "Synchronize changes rather than copying everything")
+                .addOption("d", "dry-run", false, "Synchronize changes rather than copying everything");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -32,10 +36,11 @@ public class CLI implements ProgressReporter {
         File inputDirectory = new File(cmd.getOptionValue("i"));
         File outputDirectory = new File(cmd.getOptionValue("o"));
         boolean isSync = cmd.hasOption("s");
+        boolean isDryRun = cmd.hasOption("d");
 
         CLI instance = new CLI();
 
-        new FileProcessor(inputDirectory, outputDirectory, isSync)
+        new FileProcessor(inputDirectory, outputDirectory, isSync, isDryRun)
                 .process(instance);
     }
 
