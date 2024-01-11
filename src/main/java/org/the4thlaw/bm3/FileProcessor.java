@@ -349,6 +349,8 @@ public class FileProcessor {
 					// We can integrate the cover on the fly
 					cover.writeToFile(sourceFile, targetFile);
 				}
+				// Update the target date so that it's used in future synced runs
+				targetFile.setLastModified(System.currentTimeMillis());
 			}
 		} else {
 			syncSavedStats.addValue(originalSize);
