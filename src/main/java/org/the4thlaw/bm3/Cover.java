@@ -15,7 +15,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.FalseFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.cache2k.Cache;
-import org.cache2k.CacheBuilder;
+import org.cache2k.Cache2kBuilder;
 import org.imgscalr.Scalr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +32,24 @@ public class Cover {
 	private static final Pattern FOLDER_PATTERN = Pattern.compile("folder\\.(png|jpg|jpeg)", Pattern.CASE_INSENSITIVE);
 	private static final int MAX_SIZE = 500;
 	private static final int COVER_CACHE_SIZE = 50;
-	private static final Cache<String, byte[]> COVER_CACHE = CacheBuilder.newCache(String.class, byte[].class)
-			.name("Covers").eternal(true).maxSize(COVER_CACHE_SIZE).build();
+	private static final Cache<String, CoverData> COVER_CACHE = new Cache2kBuilder<String, CoverData>() {
+	}
+			.name("Covers")
+			.eternal(true)
+			.entryCapacity(COVER_CACHE_SIZE)
+			.build();
+
+	private static class CoverData {
+		private final byte[] data;
+
+		CoverData(byte[] data) {
+			this.data = data;
+		}
+
+		byte[] getData() {
+			return data;
+		}
+	}
 
 	public static Cover forMusicFile(File file) {
 		File sourceParent = file.getParentFile();
@@ -70,10 +86,10 @@ public class Cover {
 	public byte[] getBytes() {
 		String coverPath = coverFile.toString();
 
-		byte[] cachedCover = COVER_CACHE.peek(coverPath);
+		CoverData cachedCover = COVER_CACHE.peek(coverPath);
 		if (cachedCover != null) {
 			LOGGER.debug("Cache hit for {}", coverFile);
-			return cachedCover;
+			return cachedCover.getData();
 		}
 
 		BufferedImage coverImg;
@@ -85,7 +101,9 @@ public class Cover {
 		}
 
 		if (coverImg == null) {
-			LOGGER.warn("Cover at {} coverFile is in an unknown format (CMYK and exotic color profiles are usual suspects)", coverFile);
+			LOGGER.warn(
+					"Cover at {} coverFile is in an unknown format (CMYK and exotic color profiles are usual suspects)",
+					coverFile);
 			return null;
 		}
 
@@ -114,7 +132,7 @@ public class Cover {
 		}
 
 		byte[] bytes = baos.toByteArray();
-		COVER_CACHE.put(coverPath, bytes);
+		COVER_CACHE.put(coverPath, new CoverData(bytes));
 		return bytes;
 	}
 
@@ -145,8 +163,7 @@ public class Cover {
 	}
 
 	/**
-	 * Gets the last modification time of the cover. Follows the contract of
-	 * {@link File#lastModified()}.
+	 * Gets the last modification time of the cover. Follows the contract of {@link File#lastModified()}.
 	 * 
 	 * @return the modification time.
 	 */
