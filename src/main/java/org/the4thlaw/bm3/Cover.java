@@ -84,6 +84,11 @@ public class Cover {
 			return null;
 		}
 
+		if (coverImg == null) {
+			LOGGER.warn("Cover at {} coverFile is in an unknown format (CMYK and exotic color profiles are usual suspects)", coverFile);
+			return null;
+		}
+
 		// Convert non-RGB to RGB if needed
 		if (coverImg.getType() != BufferedImage.TYPE_INT_RGB) {
 			BufferedImage convertedImg = new BufferedImage(coverImg.getWidth(), coverImg.getHeight(),
