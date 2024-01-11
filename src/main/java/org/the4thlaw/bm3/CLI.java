@@ -13,6 +13,7 @@ import org.apache.commons.cli.ParseException;
 // TODO: switch to Logback
 // TODO: add verbose mode to control logs
 // TODO: Remove logs from cache2k
+// TODO: Debounce progress reporting to not have more than one print per 10ms.See maybe https://github.com/bhowell2/debouncer
 public class CLI implements ProgressReporter {
 
     public static void main(String[] args) throws IOException {

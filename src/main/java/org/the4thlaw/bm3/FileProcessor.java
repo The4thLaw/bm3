@@ -71,6 +71,7 @@ public class FileProcessor {
 		Set<File> excludedFiles = loadExclusions(reporter, excludedPlaylists);
 		findFiles(reporter, excludedFiles, includedPlaylists, includedFiles, loadedPlaylists);
 		if (syncMode) {
+			// Remove before copying to make room
 			removeFiles(reporter, includedFiles);
 		}
 		recreatePlaylists(reporter, includedFiles, loadedPlaylists);
