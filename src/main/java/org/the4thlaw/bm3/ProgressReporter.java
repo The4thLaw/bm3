@@ -16,4 +16,7 @@ public interface ProgressReporter {
 	void setSubStep(int step);
 
 	void endSubTracking();
+
+	default void endTracking() {
+	}
 }

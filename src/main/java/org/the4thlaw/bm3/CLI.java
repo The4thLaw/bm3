@@ -10,11 +10,15 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-// TODO: switch to Logback
-// TODO: add verbose mode to control logs
-// TODO: Remove logs from cache2k
-// TODO: Debounce progress reporting to not have more than one print per 10ms.See maybe https://github.com/bhowell2/debouncer
-public class CLI implements ProgressReporter {
+import ch.qos.logback.classic.Level;
+
+public class CLI  {
+
+    private static void setLoggingLevel(Level level) {
+        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
+                .getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        root.setLevel(level);
+    }
 
     public static void main(String[] args) throws IOException {
         Options options = new Options();
@@ -22,7 +26,9 @@ public class CLI implements ProgressReporter {
         options.addRequiredOption("i", "input", true, "Input directory")
                 .addRequiredOption("o", "output", true, "Output directory")
                 .addOption("s", "sync", false, "Synchronize changes rather than copying everything")
-                .addOption("d", "dry-run", false, "Synchronize changes rather than copying everything");
+                .addOption("d", "dry-run", false, "Synchronize changes rather than copying everything")
+                .addOption("q", "quiet", false, "Quiet mode, outputs only status and warning messages")
+                .addOption("v", "verbose", false, "Verbose mode, outputs debug information");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -39,86 +45,13 @@ public class CLI implements ProgressReporter {
         boolean isSync = cmd.hasOption("s");
         boolean isDryRun = cmd.hasOption("d");
 
-        CLI instance = new CLI();
+        if (cmd.hasOption("v")) {
+            setLoggingLevel(Level.DEBUG);
+        } else if (cmd.hasOption("q")) {
+            setLoggingLevel(Level.WARN);
+        }
 
         new FileProcessor(inputDirectory, outputDirectory, isSync, isDryRun)
-                .process(instance);
+                .process(new CLIProgressReporter());
     }
-
-    private String status = "";
-    private boolean unknown;
-    private int step;
-    private int total;
-    private boolean trackSub;
-    private int subStep;
-    private int subTotal;
-
-    private void printProgress() {
-        String progress = "";
-        if (unknown) {
-            progress = status;
-        } else {
-            int numMainDigits = String.valueOf(total).length();
-            String mainFmt = "% " + numMainDigits + "d";
-            StringBuilder sb = new StringBuilder(
-                    String.format("%s [" + mainFmt + "/" + mainFmt + "]", status, step, total));
-            if (trackSub) {
-                int numSubDigits = String.valueOf(subTotal).length();
-                String subFmt = "% " + numSubDigits + "d";
-                sb.append(String.format(" [" + subFmt + "/" + subFmt + "]", subStep, subTotal));
-            }
-            progress = sb.toString();
-        }
-        progress += "\r";
-        System.err.print(progress);
-    }
-
-    @Override
-    public void setStatus(String status) {
-        this.status = status;
-        printProgress();
-    }
-
-    @Override
-    public void setProgressUnknown(boolean unknown) {
-        this.unknown = unknown;
-        printProgress();
-    }
-
-    @Override
-    public void setStep(int step) {
-        this.step = step;
-        printProgress();
-    }
-
-    @Override
-    public void setTotal(int total) {
-        this.total = total;
-        printProgress();
-    }
-
-    @Override
-    public void reportError(String message) {
-        System.err.println("Error: " + message);
-        printProgress();
-    }
-
-    @Override
-    public void setSubStep(int step) {
-        this.subStep = step;
-        printProgress();
-    }
-
-    @Override
-    public void setSubTotal(int total) {
-        this.trackSub = true;
-        this.subTotal = total;
-    }
-
-    @Override
-    public void endSubTracking() {
-        this.trackSub = false;
-        printProgress();
-    }
-
 }

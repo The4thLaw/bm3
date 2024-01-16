@@ -79,6 +79,7 @@ public class FileProcessor {
 
 		reporter.setStatus("Done");
 		LOGGER.info("Process complete");
+		reporter.endTracking();
 		outputStatistics();
 	}
 
