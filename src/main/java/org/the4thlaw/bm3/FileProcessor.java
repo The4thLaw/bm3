@@ -38,6 +38,7 @@ public class FileProcessor {
 
 	private final File sourceDirectory;
 	private final File targetDirectory;
+	private final File playlistDirectory;
 	private final boolean syncMode;
 	private final boolean dryRun;
 
@@ -48,8 +49,17 @@ public class FileProcessor {
 	private final StopWatch stopWatch = new StopWatch();
 
 	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode, boolean dryRun) {
+		this(sourceDirectory, targetDirectory, null, syncMode, dryRun);
+	}
+
+	public FileProcessor(File sourceDirectory, File targetDirectory, File playlistDirectory, boolean syncMode, boolean dryRun) {
 		this.sourceDirectory = sourceDirectory;
 		this.targetDirectory = targetDirectory;
+		if (playlistDirectory == null) {
+			this.playlistDirectory = sourceDirectory;
+		} else {
+			this.playlistDirectory = playlistDirectory;
+		}
 		this.syncMode = syncMode;
 		this.dryRun = dryRun;
 	}
@@ -205,7 +215,7 @@ public class FileProcessor {
 		LOGGER.info("Searching for playlists...");
 		reporter.setProgressUnknown(true);
 		reporter.setStatus("Searching for playlists...");
-		Collection<File> playlists = FileUtils.listFiles(sourceDirectory, new String[] { "m3u" }, true);
+		Collection<File> playlists = FileUtils.listFiles(playlistDirectory, new String[] { "m3u" }, true);
 		return playlists;
 	}
 
