@@ -26,6 +26,8 @@ public class CLI  {
         options.addRequiredOption("i", "input", true, "Input directory")
                 .addRequiredOption("o", "output", true, "Output directory")
                 .addOption("p", "playlist-dir", true, "Disable automatic playlist detection and use a specific directory")
+                .addOption("b", "use-backslashes", false, "Use backslashes for separators in the playlist files. Known to work on BMW iDrive 5.x."
+                + " Default is to use slashes, which is known to work on BMW iDrive 8.x and VLC for Android.")
                 .addOption("s", "sync", false, "Synchronize changes rather than copying everything")
                 .addOption("d", "dry-run", false, "Don't change the target directory or files, only perform a trial run")
                 .addOption("q", "quiet", false, "Quiet mode, outputs only status and warning messages")
@@ -47,6 +49,7 @@ public class CLI  {
         if (cmd.hasOption("p")) {
             playlistDirectory = new File(cmd.getOptionValue("p"));
         }
+        boolean isUseSlashes = !cmd.hasOption("b");
         boolean isSync = cmd.hasOption("s");
         boolean isDryRun = cmd.hasOption("d");
 
@@ -56,7 +59,7 @@ public class CLI  {
             setLoggingLevel(Level.WARN);
         }
 
-        new FileProcessor(inputDirectory, outputDirectory, playlistDirectory, isSync, isDryRun)
+        new FileProcessor(inputDirectory, outputDirectory, playlistDirectory, isUseSlashes, isSync, isDryRun)
                 .process(new CLIProgressReporter());
     }
 }

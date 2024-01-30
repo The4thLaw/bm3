@@ -39,6 +39,7 @@ public class FileProcessor {
 	private final File sourceDirectory;
 	private final File targetDirectory;
 	private final File playlistDirectory;
+	private final boolean useSlashes;
 	private final boolean syncMode;
 	private final boolean dryRun;
 
@@ -48,11 +49,11 @@ public class FileProcessor {
 	private final SummaryStatistics syncRemovedStats = new SummaryStatistics();
 	private final StopWatch stopWatch = new StopWatch();
 
-	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode, boolean dryRun) {
-		this(sourceDirectory, targetDirectory, null, syncMode, dryRun);
+	public FileProcessor(File sourceDirectory, File targetDirectory, boolean syncMode) {
+		this(sourceDirectory, targetDirectory, null, true, syncMode, false);
 	}
 
-	public FileProcessor(File sourceDirectory, File targetDirectory, File playlistDirectory, boolean syncMode, boolean dryRun) {
+	public FileProcessor(File sourceDirectory, File targetDirectory, File playlistDirectory, boolean useSlashes, boolean syncMode, boolean dryRun) {
 		this.sourceDirectory = sourceDirectory;
 		this.targetDirectory = targetDirectory;
 		if (playlistDirectory == null) {
@@ -60,6 +61,7 @@ public class FileProcessor {
 		} else {
 			this.playlistDirectory = playlistDirectory;
 		}
+		this.useSlashes = useSlashes;
 		this.syncMode = syncMode;
 		this.dryRun = dryRun;
 	}
@@ -285,23 +287,9 @@ public class FileProcessor {
 		for (Entry<String, List<File>> playlistEntry : loadedPlaylists.entrySet()) {
 			String plsName = playlistEntry.getKey();
 			File playlistFile = new File(targetPlaylistDirectory, plsName + ".m3u");
+			PlaylistWriter writer = new PlaylistWriter(playlistFile, sourceDirectory.toPath(), useSlashes, dryRun);
 			List<File> plsEntries = playlistEntry.getValue();
-			int numEntries = plsEntries.size();
-			int curEntry = 0;
-			LOGGER.info("Creating playlist \"{}\" for {} files", playlistFile, numEntries);
-			reporter.setSubTotal(numEntries);
-			reporter.setSubStep(0);
-			try (PrintWriter m3uWriter = getPlaylistWriter(playlistFile)) {
-				m3uWriter.println("#EXTM3U");
-				LOGGER.trace("{}: wrote header", plsName);
-				for (File record : plsEntries) {
-					String adjustedPath = ".." + File.separator
-							+ sourceDirectory.toPath().relativize(record.toPath()).toString();
-					LOGGER.trace("{}: writing path for file {}", plsName, adjustedPath);
-					m3uWriter.println(adjustedPath);
-					reporter.setSubStep(++curEntry);
-				}
-			}
+			writer.writeEntries(plsEntries, reporter);
 			reporter.setStep(i++);
 			reporter.endSubTracking();
 		}

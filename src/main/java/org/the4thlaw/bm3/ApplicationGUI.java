@@ -197,7 +197,7 @@ public class ApplicationGUI implements ProgressReporter {
 				@Override
 				public void run() {
 					try {
-						new FileProcessor(inputDirectory, outputDirectory, syncCheckbox.isSelected(), false)
+						new FileProcessor(inputDirectory, outputDirectory, syncCheckbox.isSelected())
 								.process(ApplicationGUI.this);
 						SwingUtilities.invokeLater(new Runnable() {
 							@Override
