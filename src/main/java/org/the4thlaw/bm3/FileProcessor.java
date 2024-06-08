@@ -138,7 +138,7 @@ public class FileProcessor {
 		NotInSourceFileFilter filter = new NotInSourceFileFilter(includedPaths, targetDirectory.toPath());
 		Collection<File> filesToRemove = FileUtils.listFiles(targetDirectory, filter, TrueFileFilter.INSTANCE);
 		// Actually remove those files from destination
-		LOGGER.debug("There are {} files to delete", filesToRemove.size());
+		LOGGER.info("There are {} de-synced files to remove", filesToRemove.size());
 		reporter.setProgressUnknown(false);
 		if (!filesToRemove.isEmpty()) {
 			AtomicInteger step = new AtomicInteger(0);
