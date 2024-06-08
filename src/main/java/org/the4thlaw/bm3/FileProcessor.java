@@ -54,6 +54,10 @@ public class FileProcessor {
 	}
 
 	public FileProcessor(File sourceDirectory, File targetDirectory, File playlistDirectory, boolean useSlashes, boolean syncMode, boolean dryRun) {
+		if (!sourceDirectory.isDirectory()) {
+			throw new IllegalArgumentException("Not a directory or doesn't exist: " + sourceDirectory);
+		}
+		
 		this.sourceDirectory = sourceDirectory;
 		this.targetDirectory = targetDirectory;
 		if (playlistDirectory == null) {
@@ -338,6 +342,18 @@ public class FileProcessor {
 			cover = Cover.forMusicFile(sourceFile);
 		}
 
+		// Safety check to avoid corruption
+		Path canonicalSource = sourceFile.toPath().toRealPath();
+		Path targetPath = targetFile.toPath();
+		if (Files.exists(targetPath)) {
+			Path canonicalTarget = targetPath.toRealPath();
+			if (canonicalSource.equals(canonicalTarget)) {
+				LOGGER.error("Fatal error: source and target are equal, this could lead to data corruption "
+					+ "(nothing was corrupted here): source = {}, target = {}", canonicalSource, canonicalTarget);
+				throw new IllegalArgumentException("Fatal error: source and target are equal");
+			}
+		}
+
 		long originalSize = sourceFile.length();
 		if (shouldCopy(sourceFile, targetFile, cover)) {
 			if (!dryRun) {
@@ -346,7 +362,12 @@ public class FileProcessor {
 					FileUtils.copyFile(sourceFile, targetFile);
 				} else {
 					// We can integrate the cover on the fly
-					cover.writeToFile(sourceFile, targetFile);
+					try {
+						cover.writeToFile(sourceFile, targetFile);
+					} catch (Exception e) {
+						LOGGER.warn("Failed to write cover in file {}, the file will be copied without cover", targetFile, e);
+						FileUtils.copyFile(sourceFile, targetFile);
+					}
 				}
 				// Update the target date so that it's used in future synced runs
 				targetFile.setLastModified(System.currentTimeMillis());
