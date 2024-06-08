@@ -1,11 +1,7 @@
 package org.the4thlaw.bm3;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -296,14 +292,6 @@ public class FileProcessor {
 			writer.writeEntries(plsEntries, reporter);
 			reporter.setStep(i++);
 			reporter.endSubTracking();
-		}
-	}
-
-	private PrintWriter getPlaylistWriter(File playlistFile) throws IOException {
-		if (dryRun) {
-			return new PrintWriter(new StringWriter());
-		} else {
-			return new PrintWriter(new BufferedWriter(new FileWriter(playlistFile)));
 		}
 	}
 
