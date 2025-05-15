@@ -56,6 +56,16 @@
 			<artifactId>debouncer</artifactId>
 			<version>1.1.0</version>
 		</dependency>
+		<!--
+		Since we only have one dependency we don't need
+		https://maven.apache.org/plugins/maven-assembly-plugin/examples/single/using-container-descriptor-handlers.html
+		at the moment
+		-->
+		<dependency>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-jpeg</artifactId>
+			<version>3.12.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
